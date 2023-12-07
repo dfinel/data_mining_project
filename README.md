@@ -36,6 +36,8 @@ name of the product, its price, the saving and the product number :
 
 ### How did we solve the problem ? 
 
+To scrape datas from [padel-point.com](), here is how we managed to do it :
+
 First of all, we implemented a function named _**get_all_urls()**_ to get urls of every page from the website where we have 
 products. 
 Then, we got the links of each products from each page with the _**get_link_of_products_page(response)**_ function. 
@@ -43,13 +45,19 @@ After that, we got the links of each product from every page with the _**get_eve
 Then, we sent requests for each link with the _**send_requests_on_products()**_ function. 
 Finally, we obtained each information we want for each product with the _**get_all_infos()**_ function. 
 
+## THE TEAM
+
+The team is composed by [Sacha Koskas](https://www.linkedin.com/in/sacha-koskas-a3a46b1b5/) and [Dan Finel](https://www.linkedin.com/in/dan-finel/). 
+We are both students at ITC ( Israel Technology Challenge).
+
+ 
 
 ## Contributing 
 
 Pull requests are welcome. For major changes, please open an issue first
 to discuss what you would like to change.
 
-`Please make sure to update tests as appropriate.
+`Please make sure to update tests as appropriate.`
 
 
 
