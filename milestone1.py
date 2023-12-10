@@ -7,12 +7,14 @@ from import_json import nbr_product_per_page
 from import_json import number_of_threads
 from import_json import url_website
 from import_json import good_response
+from tqdm import tqdm
 
 
 def get_all_urls():
     """ Returns urls of each page of padel rackets from the website """
     url = format_url
     return [url.format(i) for i in range(0, upper_range_nbr_product, nbr_product_per_page)]
+
 
 def get_link_of_products_page(response):
     """ returns the links of each product page from a specific page"""
@@ -44,6 +46,42 @@ def send_requests_on_products():
     return my_requests
 
 
+def find_attributes(response, flag, class_, itemprop=None):
+    """ Returns the text corresponding to an attribute of the product """
+    soup = BeautifulSoup(response.content, 'html.parser')
+    return soup.find(flag, class_=class_, itemprop=itemprop).text.strip()
+
+
+def find_all_attributes(response, flag, class_):
+    """ Returns all attributes of the product corresponding to the class"""
+    soup = BeautifulSoup(response.content, 'html.parser')
+    return soup.find_all(flag, class_=class_)
+
+
+def get_attributes(response):
+    """ Returns the attributes of our product in a dictionary. The key corresponds tot he name of the attributes and
+    the value is the content"""
+    attributes = {}
+    # Extracting product details
+    attributes["name"] = find_attributes(response, "span", "product-name-sub", "name")
+    attributes["price"] = find_attributes(response, "span", "value", "price")
+    try:
+        attributes["saving"] = find_attributes(response, "span", "saving")
+    except AttributeError:
+        attributes["saving"] = str(0)
+    # Extracting product attributes
+    for title, value in zip(find_all_attributes(response, "span", "attr-title"),
+                            find_all_attributes(response, "span", "attr-value")):
+        key = title.text.strip()
+        attributes[key] = value.text.strip()
+    soup = BeautifulSoup(response.content, 'html.parser')
+    if soup.find("i", class_="icon icon-attention"):
+        attributes["in stock"] = "No"
+    else:
+        attributes["in stock"] = "Yes"
+    return attributes
+
+
 def get_all_infos():
     """ returns all the info we need about the product """
     try:
@@ -52,42 +90,20 @@ def get_all_infos():
         print("The given url is not working. Please check it.")
         sys.exit()
     info = []
-    for various_request in my_requests:
+    for various_request in tqdm(my_requests, desc='PROCESSING...'):
         for request in grequests.imap(various_request, size=number_of_threads):
             response = request
             if response.status_code != good_response:
-                raise FileExistsError(f'Status code is not 200 but {response.status_code}')
-            soup = BeautifulSoup(response.content, 'html.parser')
-            attributes = {}
-
-            # Extracting product details
-            attributes["name"] = soup.find("span", class_="product-name-sub", itemprop="name").text.strip()
-            attributes["price"] = soup.find("span", class_="value", itemprop="price").text.strip()
-
-            try:
-                attributes["saving"] = soup.find("span", class_="saving").text.strip()
-            except AttributeError:
-                attributes["saving"] = str(0)
-
-            # Extracting product attributes
-            for title, value in zip(soup.find_all("span", class_="attr-title"),
-                                    soup.find_all("span", class_="attr-value")):
-                key = title.text.strip()
-                attributes[key] = value.text.strip()
-
-            if soup.find("i", class_="icon icon-attention"):
-                attributes["in stock"] = "No"
-            else:
-                attributes["in stock"] = "Yes"
-
+                print(f'Status code is not 200 but {response.status_code}')
+                sys.exit()
+            attributes = get_attributes(response)
             all_info = [attributes]
             info.extend(all_info)
-            print(info)
     return info
 
 
 def main():
-   get_all_infos()
+    print(get_all_infos())
 
 
 if __name__ == '__main__':
