@@ -3,5 +3,7 @@ grequests==0.7.0
 soupsieve==2.5
 urllib3==2.1.0
 certifi==2023.11.17
+argparse == 1.4.0
+pymySQL == 1.1.0
 tqdm~=4.66.1
 selenium~=4.15.2
