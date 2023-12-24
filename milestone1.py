@@ -1,5 +1,6 @@
 import grequests
 import sys
+import requests
 from bs4 import BeautifulSoup
 from import_json import format_url
 from import_json import upper_range_nbr_product
@@ -8,7 +9,6 @@ from import_json import number_of_threads
 from import_json import url_website
 from import_json import good_response
 from tqdm import tqdm
-
 import argparse
 import math
 import pymysql.cursors
@@ -144,7 +144,7 @@ def get_connection():
     connection = pymysql.connect(
         host='localhost',
         user='root',
-        password='password',
+        password='root1234',
         cursorclass=pymysql.cursors.DictCursor)
     return connection
 
@@ -424,8 +424,171 @@ def create_and_fill_database(data):
     add_attributes_to_padel_rackets(data)
 
 
+def add_amazon_data_to_padel_rackets(amazon_data):
+    connection = get_connection()
+    with connection.cursor() as cursor:
+        cursor.execute('USE datamining_padel')
+        for product_data in amazon_data:
+            product = process_amazon_product_data(product_data)
+
+            # Check if the product already exists in the database by a unique field, such as name or product_number
+            cursor.execute('SELECT id FROM Padel_racket WHERE name = %s', (product['amazon_product_title'],))
+            result = cursor.fetchone()
+
+            # If the product does not exist, insert it
+            if not result:
+                insert_query = """
+                INSERT INTO Padel_racket (
+                    amazon_product_title,
+                    amazon_product_original_price,
+                    amazon_product_num_ratings,
+                    amazon_product_star_rating,
+                    amazon_product_minimum_offer_price,
+                    amazon_is_prime,
+                    amazon_sales_volume
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """
+                cursor.execute(insert_query, (
+                    product['amazon_product_title'],
+                    product['amazon_product_original_price'],
+                    product['amazon_product_num_ratings'],
+                    product['amazon_product_star_rating'],
+                    product['amazon_product_minimum_offer_price'],
+                    product['amazon_is_prime'],
+                    product['amazon_sales_volume']
+                ))
+            else:
+                # If the product exists, update it
+                update_query = """
+                UPDATE Padel_racket SET
+                    amazon_product_original_price = %s,
+                    amazon_product_num_ratings = %s,
+                    amazon_product_star_rating = %s,
+                    amazon_product_minimum_offer_price = %s,
+                    amazon_is_prime = %s,
+                    amazon_sales_volume = %s
+                WHERE name = %s
+                """
+                cursor.execute(update_query, (
+                    product['amazon_product_original_price'],
+                    product['amazon_product_num_ratings'],
+                    product['amazon_product_star_rating'],
+                    product['amazon_product_minimum_offer_price'],
+                    product['amazon_is_prime'],
+                    product['amazon_sales_volume'],
+                    product['amazon_product_title']
+                ))
+        connection.commit()
+
+
+def create_and_fill_database(data):
+    create_database()
+    add_data_to_colors(data)
+    add_data_to_gender(data)
+    add_data_to_collection(data)
+    add_data_to_dimension(data)
+    add_data_to_stock(data)
+    add_attributes_to_padel_rackets(data)
+    amazon_data = fetch_amazon_data()
+    add_amazon_data_to_padel_rackets(amazon_data)
+
+
+def process_amazon_product_data(product):
+    processed_data = {}
+    processed_data['amazon_product_title'] = product.get('product_title', '')
+    processed_data['amazon_product_original_price'] = float(
+        product.get('product_original_price', '0').replace('$', '').replace(',', ''))
+    processed_data['amazon_product_num_ratings'] = int(product.get('product_num_ratings', 0))
+    processed_data['amazon_product_star_rating'] = float(product.get('product_star_rating', 0))
+    processed_data['amazon_product_minimum_offer_price'] = float(
+        product.get('product_minimum_offer_price', '0').replace('$', '').replace(',', ''))
+    processed_data['amazon_is_prime'] = product.get('is_prime', False)
+    sales_volume = product.get('sales_volume', '')
+    processed_data['amazon_sales_volume'] = int(sales_volume.split()[0]) if sales_volume else 0
+    return processed_data
+
+
+def fetch_amazon_data():
+    all_products = []
+    page = 1
+    while True:
+        url = "https://real-time-amazon-data.p.rapidapi.com/search"
+        querystring = {"query":"padel racket","page":str(page),"country":"US","category_id":"sporting"}
+        headers = {
+            "X-RapidAPI-Key": "04416a7631msh804ef624733c365p16c86fjsn0ba96cdcd2f4",
+            "X-RapidAPI-Host": "real-time-amazon-data.p.rapidapi.com"
+        }
+        response = requests.get(url, headers=headers, params=querystring)
+        print(f"Status Code: {response.status_code}")  # To debug
+        print(f"Response: {response.text}")  # To debug
+        if response.status_code != 200:
+            # Handle non-successful responses or add retry logic
+            break
+        data = response.json()
+        all_products.extend(data.get('items', []))
+        if len(data.get('items', [])) < 14:  # Assuming 14 is the max number of items per page
+            break
+        page += 1
+    return all_products
+
+
+def add_amazon_data_to_padel_rackets(amazon_data):
+    connection = get_connection()
+    with connection.cursor() as cursor:
+        cursor.execute('USE datamining_padel')
+        for product_data in amazon_data:
+            product = process_amazon_product_data(product_data)
+
+            # Check if the product already exists in the database by a unique field, such as name or product_number
+            cursor.execute('SELECT id FROM Padel_racket WHERE name = %s', (product['amazon_product_title'],))
+            result = cursor.fetchone()
+
+            # If the product does not exist, insert it
+            if not result:
+                insert_query = """
+                INSERT INTO Padel_racket (
+                    amazon_product_title,
+                    amazon_product_original_price,
+                    amazon_product_num_ratings,
+                    amazon_product_star_rating,
+                    amazon_product_minimum_offer_price,
+                    amazon_is_prime,
+                    amazon_sales_volume
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """
+                cursor.execute(insert_query, (
+                    product['amazon_product_title'],
+                    product['amazon_product_original_price'],
+                    product['amazon_product_num_ratings'],
+                    product['amazon_product_star_rating'],
+                    product['amazon_product_minimum_offer_price'],
+                    product['amazon_is_prime'],
+                    product['amazon_sales_volume']
+                ))
+            else:
+                # If the product exists, update it
+                update_query = """
+                UPDATE Padel_racket SET
+                    amazon_product_original_price = %s,
+                    amazon_product_num_ratings = %s,
+                    amazon_product_star_rating = %s,
+                    amazon_product_minimum_offer_price = %s,
+                    amazon_is_prime = %s,
+                    amazon_sales_volume = %s
+                WHERE name = %s
+                """
+                cursor.execute(update_query, (
+                    product['amazon_product_original_price'],
+                    product['amazon_product_num_ratings'],
+                    product['amazon_product_star_rating'],
+                    product['amazon_product_minimum_offer_price'],
+                    product['amazon_is_prime'],
+                    product['amazon_sales_volume'],
+                    product['amazon_product_title']
+                ))
+        connection.commit()
+
 def get_all_infos_with_user_parameters():
-    """ Takes the arguments from the user to run the code."""
     parser = argparse.ArgumentParser()
     parser.add_argument('-all', '--scrape_everything', type=str, choices=('yes', 'no'),
                         help='Whether to scrape everything or not')
@@ -435,16 +598,15 @@ def get_all_infos_with_user_parameters():
                         help='Create database if specified, otherwise skip')
     args = parser.parse_args()
     if args.scrape_everything and args.create_database:
-        print(get_all_infos(upper_range_nbr_product))
-        create_and_fill_database(upper_range_nbr_product)
+        product_data = get_all_infos(upper_range_nbr_product)  # Fetch all product data
+        create_and_fill_database(product_data)  # Fill the database with scraped and API data
     elif args.scrape_everything:
         print(get_all_infos(upper_range_nbr_product))
     elif args.number_of_product_to_scrape and args.create_database:
         get_all = get_all_infos(args.number_of_product_to_scrape)
-        print(get_all)
         create_and_fill_database(get_all)
     elif args.create_database:
-        create_the_database()
+        create_database()
     elif args.number_of_product_to_scrape:
         print(get_all_infos(args.number_of_product_to_scrape))
 
@@ -455,3 +617,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
