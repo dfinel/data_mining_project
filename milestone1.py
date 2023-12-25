@@ -1,5 +1,7 @@
 import grequests
 import sys
+
+import requests
 from bs4 import BeautifulSoup
 from import_json import format_url
 from import_json import upper_range_nbr_product
@@ -144,7 +146,7 @@ def get_connection():
     connection = pymysql.connect(
         host='localhost',
         user='root',
-        password='password',
+        password='root1234',
         cursorclass=pymysql.cursors.DictCursor)
     return connection
 
@@ -407,6 +409,120 @@ def add_attributes_to_padel_rackets(data):
                                 collection_id, name, original_price, discounted_price, product_number))
     connection.commit()
 
+def add_amazon_data_to_padel_rackets(data):
+    """
+    Adds Amazon product items to the 'Padel_racket' table in the database.
+
+    This function iterates over a list of product data from Amazon, inserting
+    each product's details into the corresponding columns in the 'Padel_racket' table.
+
+    Parameters:
+    data (list of dict): A list where each dict contains details of a product from Amazon.
+    """
+    connection = get_connection()
+    with connection.cursor() as cursor:
+        cursor.execute('USE datamining_padel')
+        for item in data:
+            cursor.execute("""
+                INSERT INTO Padel_racket (
+                    amazon_asin, 
+                    amazon_product_title, 
+                    amazon_product_price, 
+                    amazon_product_original_price, 
+                    amazon_product_star_rating, 
+                    amazon_product_num_ratings, 
+                    amazon_product_minimum_offer_price, 
+                    amazon_is_prime, 
+                    amazon_sales_volume
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s
+                )
+            """, (
+                item['amazon_asin'],
+                item['amazon_product_title'],
+                item['amazon_product_price'],
+                item['amazon_product_original_price'],
+                item['amazon_product_star_rating'],
+                item['amazon_product_num_ratings'],
+                item['amazon_product_minimum_offer_price'],
+                item['amazon_is_prime'],
+                item['amazon_sales_volume']
+            ))
+        connection.commit()
+
+def fetch_all_products():
+    """
+    Fetches all available products from Amazon API based on a predefined search query.
+
+    This function paginates through the Amazon API search results for a given query,
+    collecting product data until no more pages are available or the API limit is reached.
+
+    Returns:
+    list: A list of dictionaries, each representing a product with its details.
+    """
+    # API Configuration
+    url = "https://real-time-amazon-data.p.rapidapi.com/search"
+    api_key = "04416a7631msh804ef624733c365p16c86fjsn0ba96cdcd2f4"  # Replace with your actual API key
+    query = "padel racket"  # Pre-defined search query
+    country = "US"  # Pre-defined country code
+    category_id = "aps"  # Pre-defined category ID
+
+    # Headers for the API request
+    headers = {
+        "X-RapidAPI-Key": api_key,
+        "X-RapidAPI-Host": "real-time-amazon-data.p.rapidapi.com"
+    }
+
+    # Initialize pagination and product collection
+    page_number = 1
+    collected_products = []
+    has_more_products = True
+
+    while has_more_products:
+        # Update the query string with the current page number
+        querystring = {
+            "query": query,
+            "page": str(page_number),
+            "country": country,
+            "category_id": category_id
+        }
+
+        # Send the GET request to the API
+        response = requests.get(url, headers=headers, params=querystring)
+        data = response.json().get('data', {}).get('products', [])
+
+        # Check if the current page returned products
+        if not data:
+            # No more products are available
+            has_more_products = False
+        else:
+            # Process and add the products to the collection
+            for product in data:
+                # Extract and clean up sales_volume
+                sales_volume = product.get('sales_volume')
+                if sales_volume:
+                    sales_volume = sales_volume.split(' ')[0]
+                else:
+                    sales_volume = None
+
+                # Append the transformed product to the collected_products list
+                collected_products.append({
+                    'amazon_asin': product.get('asin', ''),
+                    'amazon_product_title': product.get('product_title', ''),
+                    'amazon_product_price': product.get('product_price', ''),
+                    'amazon_product_original_price': product.get('product_original_price', ''),
+                    'amazon_product_star_rating': product.get('product_star_rating', ''),
+                    'amazon_product_num_ratings': product.get('product_num_ratings', ''),
+                    'amazon_product_minimum_offer_price': product.get('product_minimum_offer_price', ''),
+                    'amazon_is_prime': product.get('is_prime', ''),
+                    'amazon_sales_volume': sales_volume
+                })
+
+            # Increment the page number for the next API call
+            page_number += 1
+
+    return collected_products
+
 
 def create_the_database():
     """ Creates the database without adding any values into it"""
@@ -426,27 +542,32 @@ def create_and_fill_database(data):
 
 def get_all_infos_with_user_parameters():
     """ Takes the arguments from the user to run the code."""
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Scrape and fetch product data for padel rackets.')
     parser.add_argument('-all', '--scrape_everything', type=str, choices=('yes', 'no'),
-                        help='Whether to scrape everything or not')
+                        help='Whether to scrape everything from padel-point or not')
     parser.add_argument('-n', '--number_of_product_to_scrape', type=int, choices=range(1, upper_range_nbr_product),
-                        help="Number of product you want to scrape attributes.", default=None)
-    parser.add_argument('-cd', '--create_database', type=str, choices=('yes', 'no'), default=None,
+                        help="Number of products to scrape from padel-point.", default=None)
+    parser.add_argument('-cd', '--create_database', type=str, choices=('yes', 'no'), default='no',
                         help='Create database if specified, otherwise skip')
+    parser.add_argument('-fa', '--fetch_amazon', type=str, choices=('yes', 'no'), default='no',
+                        help='Whether to fetch data from Amazon or not')
     args = parser.parse_args()
-    if args.scrape_everything and args.create_database:
-        print(get_all_infos(upper_range_nbr_product))
-        create_and_fill_database(upper_range_nbr_product)
-    elif args.scrape_everything:
-        print(get_all_infos(upper_range_nbr_product))
-    elif args.number_of_product_to_scrape and args.create_database:
-        get_all = get_all_infos(args.number_of_product_to_scrape)
-        print(get_all)
-        create_and_fill_database(get_all)
-    elif args.create_database:
+
+    if args.create_database == 'yes':
         create_the_database()
-    elif args.number_of_product_to_scrape:
-        print(get_all_infos(args.number_of_product_to_scrape))
+
+    if args.scrape_everything == 'yes' or args.number_of_product_to_scrape:
+        number_to_scrape = upper_range_nbr_product if args.scrape_everything == 'yes' else args.number_of_product_to_scrape
+        product_data = get_all_infos(number_to_scrape)
+        print(product_data)
+        if args.create_database == 'yes':
+            create_and_fill_database(product_data)
+
+    if args.fetch_amazon == 'yes':
+        # Fetch and insert Amazon product data
+        amazon_data = fetch_all_products()
+        print(amazon_data)
+        add_amazon_data_to_padel_rackets(amazon_data)
 
 
 def main():

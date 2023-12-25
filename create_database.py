@@ -6,7 +6,7 @@ def get_the_connection():
     connection = pymysql.connect(
         host='localhost',
         user='root',
-        password='password',
+        password='root1234',
         cursorclass=pymysql.cursors.DictCursor)
     return connection
 
@@ -16,36 +16,47 @@ def create_database_dataminig_padel():
     with connection.cursor() as cursor:
         create_db = 'CREATE DATABASE IF NOT EXISTS datamining_padel'
         cursor.execute(create_db)
+        connection.commit()
 
 def create_table_padel_racket():
-    """ Creates into the database datamining_padel the table padel_racket"""
+    """ Creates the Padel_racket table with additional Amazon product data columns """
     connection = get_the_connection()
     with connection.cursor() as cursor:
         cursor.execute("USE datamining_padel")
         create_table = """
-    CREATE TABLE IF NOT EXISTS Padel_racket(
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    gender_id INT,
-    first_color_id INT,
-    second_color_id INT,
-    third_color_id INT,
-    stock_id INT,
-    dimension_id INT,
-    collection_id INT,
-    FOREIGN KEY (gender_id) REFERENCES Gender(id),
-    FOREIGN KEY (first_color_id) REFERENCES Colors(id),
-    FOREIGN KEY (second_color_id) REFERENCES Colors(id),
-    FOREIGN KEY (third_color_id) REFERENCES Colors(id),
-    FOREIGN KEY (stock_id) REFERENCES Stock(id),
-    FOREIGN KEY (dimension_id) REFERENCES Dimension(id),
-    FOREIGN KEY (collection_id) REFERENCES Collection(id),
-    name VARCHAR(100),
-    original_price FLOAT(10),
-    discounted_price FLOAT(10),
-    product_number VARCHAR(50)
-    )
-    """
+        CREATE TABLE IF NOT EXISTS Padel_racket(
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            gender_id INT,
+            first_color_id INT,
+            second_color_id INT,
+            third_color_id INT,
+            stock_id INT,
+            dimension_id INT,
+            collection_id INT,
+            FOREIGN KEY (gender_id) REFERENCES Gender(id),
+            FOREIGN KEY (first_color_id) REFERENCES Colors(id),
+            FOREIGN KEY (second_color_id) REFERENCES Colors(id),
+            FOREIGN KEY (third_color_id) REFERENCES Colors(id),
+            FOREIGN KEY (stock_id) REFERENCES Stock(id),
+            FOREIGN KEY (dimension_id) REFERENCES Dimension(id),
+            FOREIGN KEY (collection_id) REFERENCES Collection(id),
+            name VARCHAR(100),
+            original_price FLOAT(10,2),
+            discounted_price FLOAT(10,2),
+            product_number VARCHAR(50),
+            amazon_asin VARCHAR(255),
+            amazon_product_title VARCHAR(255),
+            amazon_product_price VARCHAR(255), 
+            amazon_product_original_price VARCHAR(255),
+            amazon_product_star_rating FLOAT(3,1),  
+            amazon_product_num_ratings INT, 
+            amazon_product_minimum_offer_price VARCHAR(255),
+            amazon_is_prime BOOLEAN,
+            amazon_sales_volume VARCHAR(255)
+        )
+        """
         cursor.execute(create_table)
+        connection.commit()
 
 
 def create_table_gender():
@@ -132,4 +143,3 @@ def create_database():
     create_table_colors()
     create_table_gender()
     create_table_padel_racket()
-
