@@ -15,6 +15,9 @@ import pymysql.cursors
 from create_database import create_database
 
 
+
+
+
 def get_urls_of_page(number_of_page):
     """ Returns urls of the number of  page of padel rackets  we asked from the website """
     url = format_url
@@ -144,7 +147,7 @@ def get_connection():
     connection = pymysql.connect(
         host='localhost',
         user='root',
-        password='root1234',
+        password='password',
         cursorclass=pymysql.cursors.DictCursor)
     return connection
 
@@ -424,6 +427,21 @@ def create_and_fill_database(data):
     add_attributes_to_padel_rackets(data)
 
 
+
+def process_amazon_product_data(product):
+    processed_data = {}
+    processed_data['amazon_product_title'] = product.get('product_title', '')
+    processed_data['amazon_product_original_price'] = float(
+        product.get('product_original_price', '0').replace('$', '').replace(',', ''))
+    processed_data['amazon_product_num_ratings'] = int(product.get('product_num_ratings', 0))
+    processed_data['amazon_product_star_rating'] = float(product.get('product_star_rating', 0))
+    processed_data['amazon_product_minimum_offer_price'] = float(
+        product.get('product_minimum_offer_price', '0').replace('$', '').replace(',', ''))
+    processed_data['amazon_is_prime'] = product.get('is_prime', False)
+    sales_volume = product.get('sales_volume', '')
+    processed_data['amazon_sales_volume'] = int(sales_volume.split()[0]) if sales_volume else 0
+    return processed_data
+
 def add_amazon_data_to_padel_rackets(amazon_data):
     connection = get_connection()
     with connection.cursor() as cursor:
@@ -493,19 +511,6 @@ def create_and_fill_database(data):
     add_amazon_data_to_padel_rackets(amazon_data)
 
 
-def process_amazon_product_data(product):
-    processed_data = {}
-    processed_data['amazon_product_title'] = product.get('product_title', '')
-    processed_data['amazon_product_original_price'] = float(
-        product.get('product_original_price', '0').replace('$', '').replace(',', ''))
-    processed_data['amazon_product_num_ratings'] = int(product.get('product_num_ratings', 0))
-    processed_data['amazon_product_star_rating'] = float(product.get('product_star_rating', 0))
-    processed_data['amazon_product_minimum_offer_price'] = float(
-        product.get('product_minimum_offer_price', '0').replace('$', '').replace(',', ''))
-    processed_data['amazon_is_prime'] = product.get('is_prime', False)
-    sales_volume = product.get('sales_volume', '')
-    processed_data['amazon_sales_volume'] = int(sales_volume.split()[0]) if sales_volume else 0
-    return processed_data
 
 
 def fetch_amazon_data():
@@ -519,19 +524,20 @@ def fetch_amazon_data():
             "X-RapidAPI-Host": "real-time-amazon-data.p.rapidapi.com"
         }
         response = requests.get(url, headers=headers, params=querystring)
-        print(f"Status Code: {response.status_code}")  # To debug
-        print(f"Response: {response.text}")  # To debug
+        # print(f"Status Code: {response.status_code}")  # To debug
+        # print(f"Response: {response.text}")  # To debug
         if response.status_code != 200:
             # Handle non-successful responses or add retry logic
             break
         data = response.json()
-        all_products.extend(data.get('items', []))
+        all_products.extend(data.get('data', []))
         if len(data.get('items', [])) < 14:  # Assuming 14 is the max number of items per page
             break
         page += 1
     return all_products
 
 
+print(fetch_amazon_data())
 def add_amazon_data_to_padel_rackets(amazon_data):
     connection = get_connection()
     with connection.cursor() as cursor:
@@ -611,11 +617,11 @@ def get_all_infos_with_user_parameters():
         print(get_all_infos(args.number_of_product_to_scrape))
 
 
-def main():
-    get_all_infos_with_user_parameters()
-
-
-if __name__ == '__main__':
-    main()
+# def main():
+#     get_all_infos_with_user_parameters()
+#
+#
+# if __name__ == '__main__':
+#     main()
 
 
