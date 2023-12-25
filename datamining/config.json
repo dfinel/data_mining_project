@@ -1,0 +1,26 @@
+{
+    "format_of_url" : "https://www.padel-point.com/padel-racket/?start={}&sz=36",
+    "upper_range_number_of_product" : 900,
+    "number_of_product_per_page" : 36,
+    "number of threads" : 10,
+    "url_of_website" : "https://www.padel-point.com",
+    "good_response" : 200,
+    "host" : "localhost",
+    "user" : "root",
+    "password" : "password",
+    "amazon_url" : "https://real-time-amazon-data.p.rapidapi.com/search",
+    "amazon_headers" : {
+        "X-RapidAPI-Key": "ff8575e292msha2c3171587a38d8p17beb9jsn580c24d8fd83",
+        "X-RapidAPI-Host": "real-time-amazon-data.p.rapidapi.com"
+    },
+    "amazon_main_insert_query": "INSERT INTO Padel_racket(amazon_name,amazon_discounted_price,amazon_original_price,amazon_star_rating,amazon_num_ratings,\n        amazon_sales_volume)\n        VALUES (%s, %s, %s, %s, %s, %s)",
+    "amazon_main_update_query": "UPDATE Padel_racket\n        SET amazon_name = %s,amazon_discounted_price = %s, amazon_original_price = %s, amazon_star_rating = %s, \n        amazon_num_ratings = %s, amazon_sales_volume = %s\n        WHERE id = %s",
+    "use_database" : "USE datamining_padel",
+    "amazon_pages_to_scrape" : 5,
+    "amazon_min_page_to_scrape" : 1,
+    "html_feature" : "html.parser",
+    "span_flag" :"span",
+    "easy_query" : "SELECT id FROM Dimension WHERE 1=1 ",
+    "padel_point_main_insert_query" : "INSERT IGNORE INTO Padel_racket(gender_id, first_color_id, second_color_id, third_color_id, stock_id, dimension_id, \n    collection_id, name, original_price, discounted_price, product_number)\n    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+    "index_price" : 2
+}
