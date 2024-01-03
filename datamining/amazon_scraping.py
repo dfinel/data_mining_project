@@ -117,7 +117,7 @@ def amazon_add_attributes_padel_racket():
     """ Add all the attributes from amazon for each product to the existing database datamining_padel."""
     connection = get_connection()
     with connection.cursor() as cursor:
-        cursor.execute('USE datamining_padel')
+        cursor.execute(use_database)
         data = amazon_get_all_infos()
         for elem in data:
             id = amazon_get_id_matching_name(elem.get('amazon_name'), cursor)
