@@ -71,14 +71,20 @@ def add_data_to_colors(data):
             second_color = item.get('2nd Color')
             third_color = item.get('3rd Color')
             if first_color:
-                query = 'INSERT IGNORE INTO Colors(color) VALUES (%s)'
-                cursor.execute(query, (first_color,))
+                cursor.execute('SELECT COUNT(*) FROM Colors WHERE color = %s', first_color)
+                count = cursor.fetchone()
+                if count['COUNT(*)'] == 0:
+                    cursor.execute('INSERT INTO Colors(color) VALUES (%s)', first_color)
             if second_color:
-                query = 'INSERT IGNORE INTO Colors(color) VALUES (%s)'
-                cursor.execute(query, (second_color,))
+                cursor.execute('SELECT COUNT(*) FROM Colors WHERE color = %s', second_color)
+                count = cursor.fetchone()
+                if count['COUNT(*)'] == 0:
+                    cursor.execute('INSERT INTO Colors(color) VALUES (%s)', second_color)
             if third_color:
-                query = 'INSERT IGNORE INTO Colors(color) VALUES (%s)'
-                cursor.execute(query, (third_color,))
+                cursor.execute('SELECT COUNT(*) FROM Colors WHERE color = %s', third_color)
+                count = cursor.fetchone()
+                if count['COUNT(*)'] == 0:
+                    cursor.execute('INSERT INTO Colors(color) VALUES (%s)', third_color)
     connection.commit()
 
 
