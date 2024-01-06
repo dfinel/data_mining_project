@@ -21,6 +21,7 @@
     "html_feature" : "html.parser",
     "span_flag" :"span",
     "easy_query" : "SELECT id FROM Dimension WHERE 1=1 ",
-    "padel_point_main_insert_query" : "INSERT IGNORE INTO Padel_racket(gender_id, first_color_id, second_color_id, third_color_id, stock_id, dimension_id, \n    collection_id, name, original_price, discounted_price, product_number)\n    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-    "index_price" : 2
+    "padel_point_main_count_query" : "SELECT COUNT(*) FROM Padel_racket WHERE (gender_id IS NULL OR gender_id= %s) AND first_color_id = %s AND (second_color_id IS NULL OR second_color_id = %s) AND (third_color_id IS NULL OR third_color_id = %s) AND stock_id = %s AND dimension_id = %s AND collection_id = %s AND name = %s AND original_price = %s AND discounted_price = %s AND product_number = %s",
+    "index_price" : 2,
+    "padel_point_main_insert_query" : " INSERT INTO Padel_racket(gender_id, first_color_id, second_color_id, third_color_id, stock_id, dimension_id,collection_id, name, original_price, discounted_price, product_number) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 }

@@ -9,7 +9,7 @@ from get_functions import get_stock_id
 from padel_logger import logger
 from import_json import use_database
 from import_json import padel_point_main_insert_query
-
+from import_json import padel_point_main_count_query
 
 def add_data_to_stock(data):
     """ Adds items from 'data' to the table Stock if the data does not already exist"""
@@ -18,9 +18,11 @@ def add_data_to_stock(data):
         cursor.execute(use_database)
         for item in data:
             stock = item.get('in stock')
-            if stock:
-                query = 'INSERT IGNORE INTO Stock(in_stock) VALUES (%s)'
-                cursor.execute(query, (stock,))
+            query = 'SELECT COUNT(*) FROM Stock WHERE in_stock = %s'
+            cursor.execute(query, stock)
+            count = cursor.fetchone()
+            if count['COUNT(*)'] == 0:
+                cursor.execute('INSERT INTO Stock(in_stock) VALUES (%s)', stock)
     connection.commit()
 
 
@@ -31,8 +33,12 @@ def add_data_to_gender(data):
         for item in data:
             gender = item.get('Gender')
             if gender:
-                query = 'INSERT IGNORE INTO Gender(gender) VALUES (%s)'
-                cursor.execute(query, (gender,))
+                query = 'SELECT COUNT(*) FROM Gender where gender = %s'
+                cursor.execute(query, gender)
+                count = cursor.fetchone()
+                if count['COUNT(*)'] == 0:
+                    cursor.execute("INSERT INTO Gender(gender) VALUES (%s)", gender)
+            connection.commit()
     connection.commit()
 
 
@@ -44,8 +50,11 @@ def add_data_to_collection(data):
         for item in data:
             collection = item.get('Collection')
             if collection:
-                query = 'INSERT IGNORE INTO Collection(collection) VALUES (%s)'
-                cursor.execute(query, (collection,))
+                query = f"SELECT COUNT(*) FROM Collection where collection = '{collection}'"
+                cursor.execute(query)
+                count = cursor.fetchone()
+                if count['COUNT(*)'] == 0:
+                    cursor.execute("INSERT INTO Collection(collection) VALUES (%s)", collection)
     connection.commit()
 
 
@@ -56,8 +65,12 @@ def add_data_to_dimension(data):
         cursor.execute(use_database)
         for item in data:
             profile, length, head_size, balance = get_dimension_attributes(item)
-            query = 'INSERT IGNORE INTO Dimension(profile,length,head_size,balance) VALUES (%s, %s, %s, %s)'
+            query = 'SELECT COUNT(*) FROM Dimension WHERE profile = %s AND length = %s AND head_size = %s AND balance = %s'
             cursor.execute(query, (profile, length, head_size, balance))
+            count = cursor.fetchone()
+            if count['COUNT(*)'] == 0:
+                cursor.execute("INSERT INTO Dimension(profile, length, head_size, balance) VALUES (%s, %s, %s, %s)",
+                               (profile, length, head_size, balance))
     connection.commit()
 
 
@@ -101,8 +114,14 @@ def add_attributes_to_padel_rackets(data):
             profile, length, head_size, balance = get_dimension_attributes(item)
             dimension_id = get_dimension_id(cursor, profile, length, head_size, balance)
             collection_id = get_collection_id(item, cursor)
-            query = padel_point_main_insert_query
+            query = padel_point_main_count_query
             cursor.execute(query, (id_gender, first_color_id, second_color_id, third_color_id, stock_id, dimension_id,
                                    collection_id, name, original_price, discounted_price, product_number))
-            logger.info(f'{id_gender, first_color_id, second_color_id, third_color_id, stock_id, dimension_id,collection_id, name, original_price, discounted_price, product_number} successfully added to table Padel_racket')
+            count = cursor.fetchone()
+            if count['COUNT(*)'] == 0:
+                query = padel_point_main_insert_query
+                cursor.execute(query,
+                               (id_gender, first_color_id, second_color_id, third_color_id, stock_id, dimension_id,
+                                collection_id, name, original_price, discounted_price, product_number))
+                logger.info(f'{id_gender, first_color_id, second_color_id, third_color_id, stock_id, dimension_id,collection_id, name, original_price, discounted_price, product_number} successfully added to table Padel_racket')
     connection.commit()

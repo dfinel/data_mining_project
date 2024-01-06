@@ -1,6 +1,6 @@
 from get_functions import get_connection
 from import_json import use_database
-
+from get_functions import get_connection
 def create_database_datamining_padel():
     """ Creates the database datamining_padel"""
     connection = get_connection()
@@ -117,6 +117,7 @@ def create_table_collection():
     )
     """
         cursor.execute(create_table)
+
 
 
 def create_database():
